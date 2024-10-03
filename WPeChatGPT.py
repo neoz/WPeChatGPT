@@ -3,7 +3,8 @@ import idaapi
 import ida_hexrays
 import ida_kernwin
 import idc
-import openai
+#import openai
+import langchainwrapper.OpenAI as openai
 import re
 import threading
 import json
@@ -17,7 +18,7 @@ sys.path.append(path)
 import Auto_WPeGPT
 
 # Whether to use Chinese explanation code.
-ZH_CN = True
+ZH_CN = False
 # Plugin information, you can change the model here.
 PLUGIN_NAME = 'WPeChatGPT'
 PROD_NAME = 'ChatGPT'
@@ -624,9 +625,13 @@ class myplugin_WPeChatGPT(idaapi.plugin_t):
 
 
 def PLUGIN_ENTRY():
-    if openai.api_key == "ENTER_OPEN_API_KEY_HERE":
+    if hasattr(openai, 'api_key') and openai.api_key == "ENTER_OPEN_API_KEY_HERE":
         openai.api_key = os.getenv("OPENAI_API_KEY")
         if not openai.api_key:
             print("未找到 API_KEY，请在脚本中填写 openai.api_key! :(@WPeace")
             raise ValueError("No valid OpenAI API key found")
+    elif not hasattr(openai, 'api_key'):
+        key = os.getenv("GEMINI_API_KEY")
+        if not key:
+            raise ValueError("No valid GEMINI API key found")
     return type(f"myplugin_{PLUGIN_NAME}", (myplugin_WPeChatGPT, ), dict())()

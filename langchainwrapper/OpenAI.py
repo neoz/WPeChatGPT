@@ -4,33 +4,44 @@ import os
 import httpx
 from typing import List
 
+class BadRequestError(Exception):
+    pass
+
+class OpenAIError(Exception):
+    pass
+
+class Content():
+    def __init__(self, content: str | None = None):
+        self.content = content
+
 class Choice():
     def __init__(self, str: str | None = None):
-        self.message = str
-        
+        self.message = Content(str)
+
 class Response():
     def __init__(self, response_str: str | None = None):
-        self.choice = [Choice(response_str)]
+        self.choices = [Choice(response_str)]
 
 class Completions():
-    def __init__(self):
-        pass
     def create(self,
-        messages: str | None = None,
-        model: str | None = None):
-        content = messages[0]['content']
-        model = self.client.GenerativeModel(model_name=self.model)
-        response = model.generate_content(contents=content)
-        # fix response
-        resp_text = response.text.replace('```json\n', '').replace('```', '')
-
-        return Response()
+        messages,
+        model: str | None = None) -> Response:
+        try:
+            content = messages[0]['content']
+            print(f"Content: {content}")
+            model = client.GenerativeModel(model_name="gemini-1.5-flash")
+            response = model.generate_content(contents=content)
+           
+            # fix response
+            resp_text = response.text.replace('```json\n', '').replace('```', '')
+            print(f"Response: {response}")
+            return Response(resp_text)
+        except Exception as e:
+            raise BadRequestError(f"Error: {e}")
 
 class GeminiChat():
-    def __init__(self):
-        pass
-    def completions(self) -> Completions:
-        return Completions(self._client)
+    def __init__(self,model: str | None = None):
+        self.completions = Completions()
 
 class OpenAI():
     def __init__(self, 
@@ -39,10 +50,8 @@ class OpenAI():
                 api_key: str | None = None,
                 base_url: str | httpx.URL | None = None,
         ):
-        super().__init__()
         # Initialize the Google Generative AI chat model
+        self.isWrapper = True
         client.configure(api_key=os.environ.get('GEMINI_API_KEY')) 
-        self.model = model
-        self.chat = client.Chat()
+        self.chat = GeminiChat(self)
 
-    
