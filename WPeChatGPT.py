@@ -23,6 +23,7 @@ ZH_CN = False
 
 # Also use rename function to rename called functions.
 RENAME_CALLED_FUNCTIONS = True
+RENAME_FUNCTIONS_PREFIX = "_ai_"
 RENAME_FUNCTIONS_TYPE = 3 # 0: default, 1: rename with prefix _ai_ 2: rename with prefix _ai_ + old name + _ + new name , 3:like 2 but only rename func with old name begin with sub
 
 # Plugin information, you can change the model here.
@@ -454,15 +455,21 @@ def rename_callback(address, view, response, retries=0):
                 # rename strategy
                 new_name = names[func_name]
                 doFlag = True
-                if RENAME_FUNCTIONS_TYPE == 1:
-                    new_name = "_ai_" + new_name
+                hasPrefix = True
+
+                if RENAME_FUNCTIONS_TYPE == 0:
+                    hasPrefix = False
+                #elif RENAME_FUNCTIONS_TYPE == 1:
                 elif RENAME_FUNCTIONS_TYPE == 2:
-                    new_name = "_ai_" + func_name + "_" + new_name
+                    new_name =  func_name + "_" + new_name
                 elif RENAME_FUNCTIONS_TYPE == 3:
                     if func_name.startswith("sub_"):
-                        new_name = "_ai_" + func_name + "_" + new_name
+                        new_name = func_name + "_" + new_name
                     else:
                         doFlag = False
+                        
+                if hasPrefix:
+                    new_name = RENAME_FUNCTIONS_PREFIX + new_name
 
                 if doFlag and idc.set_name(called_func, new_name, idc.SN_NOWARN):
                     replaced.append(func_name)
