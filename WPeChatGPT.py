@@ -23,6 +23,7 @@ ZH_CN = False
 
 # Also use rename function to rename called functions.
 RENAME_CALLED_FUNCTIONS = True
+RENAME_FUNCTIONS_TYPE = 3 # 0: default, 1: rename with prefix _ai_ 2: rename with prefix _ai_ + old name + _ + new name , 3:like 2 but only rename func with old name begin with sub
 
 # Plugin information, you can change the model here.
 PLUGIN_NAME = 'WPeChatGPT'
@@ -450,7 +451,20 @@ def rename_callback(address, view, response, retries=0):
         for called_func in called_functions:
             func_name = idc.get_func_name(called_func)
             if func_name in names:
-                if idc.set_name(called_func, names[func_name], idc.SN_NOWARN):
+                # rename strategy
+                new_name = names[func_name]
+                doFlag = True
+                if RENAME_FUNCTIONS_TYPE == 1:
+                    new_name = "_ai_" + new_name
+                elif RENAME_FUNCTIONS_TYPE == 2:
+                    new_name = "_ai_" + func_name + "_" + new_name
+                elif RENAME_FUNCTIONS_TYPE == 3:
+                    if func_name.startswith("sub_"):
+                        new_name = "_ai_" + func_name + "_" + new_name
+                    else:
+                        doFlag = False
+
+                if doFlag and idc.set_name(called_func, new_name, idc.SN_NOWARN):
                     replaced.append(func_name)
     
     for n in names:
