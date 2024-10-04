@@ -3,6 +3,7 @@ import idaapi
 import ida_hexrays
 import ida_kernwin
 import idc
+import idautils
 #import openai
 import langchainwrapper.OpenAI as openai
 import re
@@ -19,6 +20,10 @@ import Auto_WPeGPT
 
 # Whether to use Chinese explanation code.
 ZH_CN = False
+
+# Also use rename function to rename called functions.
+RENAME_CALLED_FUNCTIONS = True
+
 # Plugin information, you can change the model here.
 PLUGIN_NAME = 'WPeChatGPT'
 PROD_NAME = 'ChatGPT'
@@ -80,7 +85,7 @@ class RenameHandler(idaapi.action_handler_t):
         decompiler_output = ida_hexrays.decompile(idaapi.get_screen_ea())
         v = ida_hexrays.get_widget_vdui(ctx.widget)
         query_model_async("Analyze the following C function:\n" + str(decompiler_output) +
-                            "\nSuggest better variable names, reply with a JSON array where keys are the original names"
+                            "\nSuggest better names for variables and functions, reply with a JSON array where keys are the original names"
                             "and values are the proposed names. Do not explain anything, only print the JSON "
                             "dictionary.",
                           functools.partial(rename_callback, address=idaapi.get_screen_ea(), view=v),
@@ -379,6 +384,26 @@ def comment_callback(address, view, response, cmtFlag, printFlag):
             print("%s:ExpCreater finished analyzing, commented on function %s. @WPeace" %(PLUGIN_NAME, idc.get_func_name(address)))
 
 
+def find_called_functions(func_ea):
+    """
+    Finds all unique functions called within the given function.
+
+    Args:
+        func_ea: The address of the function to analyze.
+
+    Returns:
+        A list of unique function addresses called within the given function.
+    """
+    called_funcs = set()  # Use a set to store unique function addresses
+    for head in idautils.Heads(func_ea, idc.get_func_attr(func_ea, idc.FUNCATTR_END)):
+        # Check if the instruction is a call based on operand type
+        if idc.get_operand_type(head, 0) == idc.o_near:  
+            called_ea = idc.get_operand_value(head, 0)  # Get the target address of the call instruction
+            called_func = idc.get_func_attr(called_ea, idc.FUNCATTR_START)
+            if called_func != idc.BADADDR:
+                called_funcs.add(called_func)  # Add the function address to the set
+    return list(called_funcs)  # Convert the set back to a list
+
 # Gepetto rename_callback Method
 def rename_callback(address, view, response, retries=0):
     """
@@ -418,6 +443,16 @@ def rename_callback(address, view, response, retries=0):
     # The rename function needs the start address of the function
     function_addr = idaapi.get_func(address).start_ea
     replaced = []
+
+    # rename called functions
+    if RENAME_CALLED_FUNCTIONS:
+        called_functions = find_called_functions(function_addr)
+        for called_func in called_functions:
+            func_name = idc.get_func_name(called_func)
+            if func_name in names:
+                if idc.set_name(called_func, names[func_name], idc.SN_NOWARN):
+                    replaced.append(func_name)
+    
     for n in names:
         if ida_hexrays.rename_lvar(function_addr, n, names[n]):
             replaced.append(n)
