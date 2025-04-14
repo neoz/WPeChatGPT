@@ -23,7 +23,7 @@ ZH_CN = False
 
 # Also use rename function to rename called functions.
 RENAME_CALLED_FUNCTIONS = True
-RENAME_FUNCTIONS_PREFIX = "_ai_"
+RENAME_FUNCTIONS_PREFIX = "_fn_"
 RENAME_FUNCTIONS_TYPE = 3 # 0: default, 1: rename with prefix _ai_ 2: rename with prefix _ai_ + old name + _ + new name , 3:like 2 but only rename func with old name begin with sub
 
 # Plugin information, you can change the model here.
@@ -87,7 +87,7 @@ class RenameHandler(idaapi.action_handler_t):
         decompiler_output = ida_hexrays.decompile(idaapi.get_screen_ea())
         v = ida_hexrays.get_widget_vdui(ctx.widget)
         query_model_async("Analyze the following C function:\n" + str(decompiler_output) +
-                            "\nSuggest better names for variables and functions, reply with a JSON array where keys are the original names"
+                            "\nSuggest better names for variables and functions, reply with a JSON array where keys are the original names "
                             "and values are the proposed names. Do not explain anything, only print the JSON "
                             "dictionary.",
                           functools.partial(rename_callback, address=idaapi.get_screen_ea(), view=v),
